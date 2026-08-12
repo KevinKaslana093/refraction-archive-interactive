@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#d9ff43" />
+  <title>折光档案｜交互网站样品</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <section class="loader" aria-label="网站正在准备" data-loader>
+    <div class="loader__index">NO. 0047</div>
+    <div class="loader__stage">
+      <p class="loader__eyebrow">REFRACTION ARCHIVE</p>
+      <div class="loader__title" aria-label="折光档案">
+        <span>折</span><span>光</span><span>档</span><span>案</span>
+      </div>
+      <div class="loader__line"><i data-progress></i></div>
+      <div class="loader__status"><span data-status>校准观察距离</span><b data-percent>00</b></div>
+    </div>
+    <button class="loader__skip" type="button" data-skip>跳过开场 ↗</button>
+  </section>
+
+  <header class="nav">
+    <a class="wordmark" href="#top" aria-label="回到首页"><i></i>折光档案</a>
+    <nav aria-label="页面导航">
+      <a href="#specimen">样本</a>
+      <a href="#method">方法</a>
+    </nav>
+    <button class="mode" type="button" data-mode aria-pressed="false">
+      <span class="mode__track"><i></i></span>
+      <span data-mode-label>显影模式</span>
+    </button>
+  </header>
+
+  <main id="top">
+    <section class="hero scene" data-scene>
+      <div class="hero__coordinates">31°13' N<br />121°28' E</div>
+      <p class="hero__kicker reveal">一份尚未被命名的视觉观察</p>
+      <h1 class="hero__title" aria-label="让隐藏的事物慢一点出现">
+        <span class="reveal">让隐藏的事物</span>
+        <span class="reveal indent">慢一点出现</span>
+      </h1>
+      <div class="orbital" aria-hidden="true">
+        <div class="orbital__ring ring-a"></div>
+        <div class="orbital__ring ring-b"></div>
+        <div class="orbital__core"><span></span></div>
+        <div class="orbital__label">OBJECT / 047</div>
+      </div>
+      <p class="hero__copy reveal">界面不必一次说完所有事情。靠近、停顿、转换视角——信息才逐层显影。</p>
+      <a class="scroll-cue" href="#specimen"><span>向下观察</span><i></i></a>
+      <div class="hero__chapter">序<br />章</div>
+    </section>
+
+    <section class="manifesto scene" id="specimen" data-scene>
+      <div class="manifesto__number">01</div>
+      <div class="manifesto__mask" aria-hidden="true"><div class="manifesto__sun"></div></div>
+      <div class="manifesto__content">
+        <p class="section-label reveal">OBSERVATION / 观察</p>
+        <h2>
+          <span class="reveal">观看不是接收，</span>
+          <span class="reveal">而是一次靠近。</span>
+        </h2>
+        <p class="manifesto__body reveal">我们把页面做成一台观察仪。文字不整齐列队，图像不被塞进卡片；每次滚动只回答一个问题，同时留下下一层悬念。</p>
+      </div>
+      <div class="manifesto__aside">
+        <span>距离</span><b data-distance>072</b><span>毫米</span>
+      </div>
+    </section>
+
+    <section class="switch-scene scene" id="method" data-scene>
+      <div class="switch-scene__sticky">
+        <p class="section-label reveal">DUAL STATE / 双重状态</p>
+        <div class="switch-scene__word" aria-hidden="true">显影</div>
+        <h2 class="reveal">同一个世界，<br />不止一种读法。</h2>
+        <p class="switch-scene__instruction reveal">点击右上角的模式开关。它不只更换颜色，也会改变你看到的注释、物体状态和运动方向。</p>
+        <div class="specimen" aria-label="可切换状态的观察样本">
+          <div class="specimen__frame frame-one"></div>
+          <div class="specimen__frame frame-two"></div>
+          <div class="specimen__object">
+            <div class="specimen__petal p1"></div><div class="specimen__petal p2"></div>
+            <div class="specimen__petal p3"></div><div class="specimen__petal p4"></div>
+            <div class="specimen__eye"></div>
+          </div>
+          <span class="specimen__annotation normal-note">样本保持沉默</span>
+          <span class="specimen__annotation reveal-note">它正在注视观察者</span>
+          <div class="specimen__axis">X — 047.2<br />Y — 091.8</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sequence scene" data-scene>
+      <div class="sequence__intro">
+        <p class="section-label reveal">SEQUENCE / 次序</p>
+        <h2 class="reveal">先有轮廓，<br />再有答案。</h2>
+      </div>
+      <ol class="sequence__steps">
+        <li><i>Ⅰ</i><span>环境先抵达</span><b>建立气氛，不急着解释</b></li>
+        <li><i>Ⅱ</i><span>主体被发现</span><b>让视线自然找到焦点</b></li>
+        <li><i>Ⅲ</i><span>操作才出现</span><b>需要时，界面才开口</b></li>
+      </ol>
+    </section>
+
+    <section class="finale scene" data-scene>
+      <div class="finale__portal" aria-hidden="true"><i></i><i></i><i></i></div>
+      <p class="section-label reveal">END OF SAMPLE / 样品结束</p>
+      <h2 class="reveal">不是把界面<br />装饰得更热闹。</h2>
+      <p class="reveal">而是决定什么先被看见，什么值得等待。</p>
+      <button type="button" data-replay>重新观看开场 ↗</button>
+      <div class="finale__edition">SAMPLE<br />AUG. 2026</div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
