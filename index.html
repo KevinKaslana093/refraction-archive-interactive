@@ -2,117 +2,128 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#d9ff43" />
-  <title>折光档案｜交互网站样品</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#080a08" />
+  <meta name="description" content="未知样本 047：一段会反向观察你的互动档案。" />
+  <title>未知样本 047｜折光档案</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="grain" aria-hidden="true"></div>
+  <canvas id="world" aria-hidden="true"></canvas>
+  <canvas id="event-layer" aria-hidden="true"></canvas>
+  <div class="noise" aria-hidden="true"></div>
 
-  <section class="loader" aria-label="网站正在准备" data-loader>
-    <div class="loader__index">NO. 0047</div>
-    <div class="loader__stage">
-      <p class="loader__eyebrow">REFRACTION ARCHIVE</p>
-      <div class="loader__title" aria-label="折光档案">
-        <span>折</span><span>光</span><span>档</span><span>案</span>
-      </div>
-      <div class="loader__line"><i data-progress></i></div>
-      <div class="loader__status"><span data-status>校准观察距离</span><b data-percent>00</b></div>
+  <section class="boot screen is-active" data-screen="boot" aria-label="系统加载">
+    <header class="boot__head">
+      <span>REFRACTION ARCHIVE</span><span>NODE / EAST-04</span><span data-clock>--:--:--</span>
+    </header>
+    <div class="boot__center">
+      <p class="boot__eyebrow">建立观察链路</p>
+      <div class="boot__records" data-boot-records aria-live="polite"></div>
     </div>
-    <button class="loader__skip" type="button" data-skip>跳过开场 ↗</button>
+    <div class="boot__foot">
+      <div class="boot__progress"><i data-boot-progress></i></div>
+      <span data-boot-percent>000%</span>
+      <button class="text-button" type="button" data-skip-boot>跳过诊断 ↗</button>
+    </div>
   </section>
 
-  <header class="nav">
-    <a class="wordmark" href="#top" aria-label="回到首页"><i></i>折光档案</a>
-    <nav aria-label="页面导航">
-      <a href="#specimen">样本</a>
-      <a href="#method">方法</a>
-    </nav>
-    <button class="mode" type="button" data-mode aria-pressed="false">
-      <span class="mode__track"><i></i></span>
-      <span data-mode-label>显影模式</span>
+  <section class="brief screen" data-screen="brief" aria-labelledby="brief-title">
+    <div class="brief__stamp">CASE<br />047</div>
+    <p class="brief__label">OBSERVATION REQUEST / 观察请求</p>
+    <h1 id="brief-title"><span>未知</span><span>样本</span><em>047</em></h1>
+    <div class="brief__facts">
+      <span>来源<br /><b>未记录</b></span>
+      <span>状态<br /><b>休眠</b></span>
+      <span>危险级<br /><b>无法判定</b></span>
+    </div>
+    <p class="brief__copy">移动视线，观察样本。切换至显影频谱，找到三处不属于它的信号。</p>
+    <button class="enter-button" type="button" data-enter>
+      <span>开始观察</span><i>按下以授权声音与交互</i>
     </button>
-  </header>
+    <div class="brief__orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+  </section>
 
-  <main id="top">
-    <section class="hero scene" data-scene>
-      <div class="hero__coordinates">31°13' N<br />121°28' E</div>
-      <p class="hero__kicker reveal">一份尚未被命名的视觉观察</p>
-      <h1 class="hero__title" aria-label="让隐藏的事物慢一点出现">
-        <span class="reveal">让隐藏的事物</span>
-        <span class="reveal indent">慢一点出现</span>
-      </h1>
-      <div class="orbital" aria-hidden="true">
-        <div class="orbital__ring ring-a"></div>
-        <div class="orbital__ring ring-b"></div>
-        <div class="orbital__core"><span></span></div>
-        <div class="orbital__label">OBJECT / 047</div>
+  <main class="lab screen" data-screen="lab" aria-label="样本观察界面">
+    <header class="lab__header">
+      <a class="mark" href="#" data-restart aria-label="重新开始"><i></i><span>折光档案</span></a>
+      <div class="case-title"><small>LIVE OBSERVATION</small><b>样本 / 047</b></div>
+      <div class="system-actions">
+        <button type="button" data-mute aria-label="切换声音">声音：开</button>
+        <button type="button" data-pause>暂停</button>
       </div>
-      <p class="hero__copy reveal">界面不必一次说完所有事情。靠近、停顿、转换视角——信息才逐层显影。</p>
-      <a class="scroll-cue" href="#specimen"><span>向下观察</span><i></i></a>
-      <div class="hero__chapter">序<br />章</div>
+    </header>
+
+    <aside class="readout readout--left" aria-label="样本数据">
+      <div><small>相位偏移</small><b data-phase>+00.00</b></div>
+      <div><small>表层温度</small><b data-temp>18.4°</b></div>
+      <div><small>凝视反应</small><b data-response>无</b></div>
+    </aside>
+
+    <section class="objective" aria-live="polite">
+      <span>当前任务</span>
+      <b data-objective>观察样本的表层行为</b>
     </section>
 
-    <section class="manifesto scene" id="specimen" data-scene>
-      <div class="manifesto__number">01</div>
-      <div class="manifesto__mask" aria-hidden="true"><div class="manifesto__sun"></div></div>
-      <div class="manifesto__content">
-        <p class="section-label reveal">OBSERVATION / 观察</p>
-        <h2>
-          <span class="reveal">观看不是接收，</span>
-          <span class="reveal">而是一次靠近。</span>
-        </h2>
-        <p class="manifesto__body reveal">我们把页面做成一台观察仪。文字不整齐列队，图像不被塞进卡片；每次滚动只回答一个问题，同时留下下一层悬念。</p>
-      </div>
-      <div class="manifesto__aside">
-        <span>距离</span><b data-distance>072</b><span>毫米</span>
-      </div>
-    </section>
+    <div class="reticle" data-reticle aria-hidden="true"><i></i><span></span></div>
+    <div class="proximity" data-proximity aria-hidden="true">它察觉到了你的视线</div>
 
-    <section class="switch-scene scene" id="method" data-scene>
-      <div class="switch-scene__sticky">
-        <p class="section-label reveal">DUAL STATE / 双重状态</p>
-        <div class="switch-scene__word" aria-hidden="true">显影</div>
-        <h2 class="reveal">同一个世界，<br />不止一种读法。</h2>
-        <p class="switch-scene__instruction reveal">点击右上角的模式开关。它不只更换颜色，也会改变你看到的注释、物体状态和运动方向。</p>
-        <div class="specimen" aria-label="可切换状态的观察样本">
-          <div class="specimen__frame frame-one"></div>
-          <div class="specimen__frame frame-two"></div>
-          <div class="specimen__object">
-            <div class="specimen__petal p1"></div><div class="specimen__petal p2"></div>
-            <div class="specimen__petal p3"></div><div class="specimen__petal p4"></div>
-            <div class="specimen__eye"></div>
-          </div>
-          <span class="specimen__annotation normal-note">样本保持沉默</span>
-          <span class="specimen__annotation reveal-note">它正在注视观察者</span>
-          <div class="specimen__axis">X — 047.2<br />Y — 091.8</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="sequence scene" data-scene>
-      <div class="sequence__intro">
-        <p class="section-label reveal">SEQUENCE / 次序</p>
-        <h2 class="reveal">先有轮廓，<br />再有答案。</h2>
-      </div>
-      <ol class="sequence__steps">
-        <li><i>Ⅰ</i><span>环境先抵达</span><b>建立气氛，不急着解释</b></li>
-        <li><i>Ⅱ</i><span>主体被发现</span><b>让视线自然找到焦点</b></li>
-        <li><i>Ⅲ</i><span>操作才出现</span><b>需要时，界面才开口</b></li>
+    <aside class="signals" aria-label="信号收集进度">
+      <span>SIGNAL TRACE</span>
+      <ol>
+        <li data-signal-slot="0"><i>01</i><b>尚未定位</b></li>
+        <li data-signal-slot="1"><i>02</i><b>尚未定位</b></li>
+        <li data-signal-slot="2"><i>03</i><b>尚未定位</b></li>
       </ol>
-    </section>
+    </aside>
 
-    <section class="finale scene" data-scene>
-      <div class="finale__portal" aria-hidden="true"><i></i><i></i><i></i></div>
-      <p class="section-label reveal">END OF SAMPLE / 样品结束</p>
-      <h2 class="reveal">不是把界面<br />装饰得更热闹。</h2>
-      <p class="reveal">而是决定什么先被看见，什么值得等待。</p>
-      <button type="button" data-replay>重新观看开场 ↗</button>
-      <div class="finale__edition">SAMPLE<br />AUG. 2026</div>
-    </section>
+    <div class="mode-control">
+      <button type="button" data-mode aria-pressed="false">
+        <span class="mode-control__switch"><i></i></span>
+        <span><small>SPACE / 点击切换</small><b data-mode-name>观察频谱</b></span>
+      </button>
+      <p data-mode-note>可见光 / 表层信息</p>
+    </div>
+
+    <div class="mobile-hint">拖动视线 · 点击异常点 · 切换频谱</div>
+    <div class="version">RA–047<br />BUILD 2.0</div>
   </main>
 
+  <section class="pause-panel" data-pause-panel aria-hidden="true">
+    <p>OBSERVATION SUSPENDED</p>
+    <h2>观察已暂停</h2>
+    <button type="button" data-resume>继续观察</button>
+    <button type="button" data-reduce-motion>动态效果：完整</button>
+    <button type="button" data-pause-restart>重新开始</button>
+  </section>
+
+  <section class="breach screen" data-screen="breach" aria-label="异常事件">
+    <div class="breach__warning">
+      <span>WARNING / OBSERVATION FAILURE</span>
+      <strong>请立即移开视线</strong>
+    </div>
+    <div class="breach__lines" data-breach-lines></div>
+  </section>
+
+  <section class="result screen" data-screen="result" aria-labelledby="result-title">
+    <div class="result__counter">ARCHIVE<br />047—<span data-result-id>0000</span></div>
+    <p class="result__label">OBSERVATION REPORT / 最终记录</p>
+    <h2 id="result-title"><span>你没有发现样本。</span><strong>样本发现了你。</strong></h2>
+    <div class="result__eye" aria-hidden="true"><i></i></div>
+    <dl class="result__report">
+      <div><dt>观察类型</dt><dd data-observer-type>耐心接近者</dd></div>
+      <div><dt>首次犹豫</dt><dd data-hesitation>0.0 秒</dd></div>
+      <div><dt>被注视时间</dt><dd data-gaze-time>0.0 秒</dd></div>
+      <div><dt>最终结论</dt><dd>适合继续观察</dd></div>
+    </dl>
+    <p class="result__secret">这份报告并非为你生成。<br />它是写给下一个样本的。</p>
+    <div class="result__actions">
+      <button type="button" data-copy-result>复制观测结果</button>
+      <button type="button" data-result-restart>再次进入</button>
+    </div>
+  </section>
+
+  <div class="rotate-note">请将设备竖直或横向放置<br /><small>观察窗口正在重新校准</small></div>
   <script src="script.js"></script>
 </body>
 </html>
