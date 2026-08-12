@@ -1,176 +1,77 @@
 (() => {
   'use strict';
-  const $ = (s, root=document) => root.querySelector(s);
-  const $$ = (s, root=document) => [...root.querySelectorAll(s)];
-  const world = $('#world'), ctx = world.getContext('2d');
-  const eventCanvas = $('#event-layer'), fx = eventCanvas.getContext('2d');
-  const state = {
-    screen:'boot', started:false, paused:false, spectrum:false, found:[],
-    pointer:{x:.5,y:.5,tx:.5,ty:.5,active:false}, startTime:0, enterTime:0,
-    gazeTime:0, hesitation:0, lastFrame:0, dpr:1, reduced:matchMedia('(prefers-reduced-motion:reduce)').matches,
-    burn:0, breachLines:[], audio:null, muted:false, signalPulse:0
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+  const world=$('#world'),ctx=world.getContext('2d'),eventCanvas=$('#event-layer'),fx=eventCanvas.getContext('2d');
+  const state={
+    screen:'boot',stage:0,paused:false,spectrum:false,choice:null,taskProgress:0,traceIndex:0,tracing:false,
+    pointer:{x:.5,y:.5,tx:.5,ty:.5,down:false},history:[],historyLast:0,startTime:0,enterTime:0,gazeTime:0,
+    hesitation:0,lastFrame:0,dpr:1,reduced:matchMedia('(prefers-reduced-motion:reduce)').matches,burn:0,
+    audio:null,muted:false,result:null,infected:false,flash:0,flashLabel:''
   };
-  const signals = [
-    {x:.37,y:.39,label:'生物电回声',tone:261.63},
-    {x:.66,y:.55,label:'逆向热源',tone:329.63},
-    {x:.48,y:.69,label:'未知语言',tone:392.00}
-  ];
-  const bootData = [
+  const bootData=[
     ['01','定位观察节点','STABLE'],['02','建立低频链路','STABLE'],['03','载入光学记录','STABLE'],
     ['04','映射表层结构','STABLE'],['05','校准凝视追踪','STABLE'],['06','检测自主运动','NONE'],
     ['07','载入显影频谱','STABLE'],['08','隔离外部信号','FAILED'],['09','验证观察者身份','UNKNOWN'],['10','开放观察窗口','READY']
   ];
+  const traceShape=[[-.42,-.14],[-.20,.30],[.06,-.34],[.31,.24],[.46,-.13],[.05,.08]];
+  const stageCopy=[
+    {n:'01 / 03',title:'将视线移至样本中央',note:'保持稳定，直至扫描完成',mobile:'移动手指，将准星对准样本中央'},
+    {n:'02 / 03',title:'描绘样本发出的回声',note:'按住并依次穿过发光节点',mobile:'按住发光节点，沿顺序拖动'},
+    {n:'03 / 03',title:'回应样本的接触请求',note:'选择是否解除隔离',mobile:'做出选择，完成最后测试'}
+  ];
 
-  function resize(){
-    state.dpr=Math.min(devicePixelRatio||1, innerWidth<700?1.5:2);
-    for(const c of [world,eventCanvas]){c.width=Math.round(innerWidth*state.dpr);c.height=Math.round(innerHeight*state.dpr);c.style.width=innerWidth+'px';c.style.height=innerHeight+'px'}
-    ctx.setTransform(state.dpr,0,0,state.dpr,0,0);fx.setTransform(state.dpr,0,0,state.dpr,0,0);
-  }
-  addEventListener('resize',resize); resize();
-
-  function screen(name){
-    state.screen=name;
-    $$('[data-screen]').forEach(el=>el.classList.toggle('is-active',el.dataset.screen===name));
-  }
-
-  function boot(){
-    const records=$('[data-boot-records]'); records.innerHTML='';
-    let i=0, progress=0; const total=bootData.length;
-    const next=()=>{
-      if(state.screen!=='boot')return;
-      if(i>=total){setTimeout(()=>{if(state.screen==='boot')screen('brief')},550);return}
-      const row=bootData[i], el=document.createElement('div');
-      el.className='boot-line'+(row[2]==='FAILED'||row[2]==='UNKNOWN'?' is-warn':'');
-      el.innerHTML=`<i>${row[0]}</i><b>${row[1]}</b><span class="pulse"></span><em>${row[2]}</em>`;
-      records.appendChild(el); i++; progress=Math.round(i/total*100);
-      $('[data-boot-progress]').style.width=progress+'%'; $('[data-boot-percent]').textContent=String(progress).padStart(3,'0')+'%';
-      const delay=i<4?180:i<8?150:230; setTimeout(next,delay);
-    }; next();
-  }
+  function resize(){state.dpr=Math.min(devicePixelRatio||1,innerWidth<700?1.5:2);for(const c of[world,eventCanvas]){c.width=Math.round(innerWidth*state.dpr);c.height=Math.round(innerHeight*state.dpr);c.style.width=innerWidth+'px';c.style.height=innerHeight+'px'}ctx.setTransform(state.dpr,0,0,state.dpr,0,0);fx.setTransform(state.dpr,0,0,state.dpr,0,0)}
+  addEventListener('resize',resize);resize();
+  function screen(name){state.screen=name;$$('[data-screen]').forEach(el=>el.classList.toggle('is-active',el.dataset.screen===name))}
+  function boot(){const records=$('[data-boot-records]');records.innerHTML='';let i=0;const next=()=>{if(state.screen!=='boot')return;if(i>=bootData.length){setTimeout(()=>{if(state.screen==='boot')screen('brief')},500);return}const row=bootData[i],el=document.createElement('div');el.className='boot-line'+(/FAILED|UNKNOWN/.test(row[2])?' is-warn':'');el.innerHTML=`<i>${row[0]}</i><b>${row[1]}</b><span class="pulse"></span><em>${row[2]}</em>`;records.appendChild(el);i++;const p=Math.round(i/bootData.length*100);$('[data-boot-progress]').style.width=p+'%';$('[data-boot-percent]').textContent=String(p).padStart(3,'0')+'%';setTimeout(next,i<4?180:i<8?145:220)};next()}
   $('[data-skip-boot]').addEventListener('click',()=>screen('brief'));
 
-  function unlockAudio(){
-    if(state.audio)return;
-    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-    const ac=new AC(), master=ac.createGain();master.gain.value=.16;master.connect(ac.destination);
-    state.audio={ac,master};
-  }
-  function tone(freq=220,dur=.18,type='sine',vol=.18,delay=0){
-    if(!state.audio||state.muted)return;const {ac,master}=state.audio;
-    const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*.72),t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.018);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.02);
-  }
-  function chord(){[130.81,196,261.63].forEach((f,i)=>tone(f,.8,'sine',.1,i*.08))}
+  function unlockAudio(){if(state.audio)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ac=new AC(),master=ac.createGain();master.gain.value=.16;master.connect(ac.destination);state.audio={ac,master}}
+  function tone(freq=220,dur=.18,type='sine',vol=.18,delay=0){if(!state.audio||state.muted)return;const{ac,master}=state.audio,o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*.72),t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.018);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03)}
+  function chord(up=true){(up?[130.81,196,261.63]:[261.63,155.56,92.5]).forEach((f,i)=>tone(f,.75,'sine',.1,i*.08))}
+  function setObjective(title,note){$('[data-objective]').textContent=title;$('[data-instruction]').textContent=note}
+  function updateStageUI(){const c=stageCopy[state.stage];$('[data-stage-number]').textContent=c.n;setObjective(c.title,c.note);$('[data-mobile-hint]').textContent=c.mobile;$$('[data-signal-slot]').forEach((el,i)=>{el.classList.toggle('is-found',i<state.stage);el.classList.toggle('is-current',i===state.stage)});$('[data-task-progress]').style.width=(state.stage===2?100:state.taskProgress)+'%'}
+  $('[data-enter]').addEventListener('click',()=>{unlockAudio();chord();state.enterTime=state.startTime=performance.now();screen('lab');state.stage=0;updateStageUI();tone(72,1.4,'sine',.08)});
 
-  $('[data-enter]').addEventListener('click',()=>{
-    unlockAudio();chord();state.started=true;state.enterTime=performance.now();state.startTime=state.enterTime;screen('lab');
-    setTimeout(()=>setObjective('移动鼠标或手指，靠近样本'),400);
-  });
+  function setMode(force){if(state.screen!=='lab'||state.paused)return;state.spectrum=typeof force==='boolean'?force:!state.spectrum;document.body.classList.toggle('is-spectrum',state.spectrum);$('[data-mode]').setAttribute('aria-pressed',String(state.spectrum));$('[data-mode-name]').textContent=state.spectrum?'显影频谱':'观察频谱';$('[data-mode-note]').textContent=state.spectrum?'不可见光 / 内层回声':'可见光 / 表层信息';tone(state.spectrum?420:210,.23,'triangle',.14);if(state.stage===1&&!state.spectrum)setObjective('切换至显影频谱','只有显影状态能看到完整回声');else if(state.stage===1)setObjective(stageCopy[1].title,stageCopy[1].note)}
+  $('[data-mode]').addEventListener('click',()=>setMode());addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setMode()}if(e.code==='Escape'&&state.screen==='lab')togglePause()});
 
-  function setObjective(text){$('[data-objective]').textContent=text}
-  function setMode(force){
-    if(state.screen!=='lab'||state.paused)return;
-    state.spectrum=typeof force==='boolean'?force:!state.spectrum;document.body.classList.toggle('is-spectrum',state.spectrum);
-    $('[data-mode]').setAttribute('aria-pressed',String(state.spectrum));
-    $('[data-mode-name]').textContent=state.spectrum?'显影频谱':'观察频谱';
-    $('[data-mode-note]').textContent=state.spectrum?'不可见光 / 内层回声':'可见光 / 表层信息';
-    setObjective(state.spectrum?'移动视线，点击正在脉动的异常点':'切换至显影频谱，寻找隐藏信号');
-    tone(state.spectrum?420:210,.23,'triangle',.14);
-  }
-  $('[data-mode]').addEventListener('click',()=>setMode());
-  addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setMode()}if(e.code==='Escape'&&state.screen==='lab')togglePause()});
-
-  function pointerMove(e){
-    if(state.paused||state.screen!=='lab')return;
-    const p=e.touches?e.touches[0]:e;if(!p)return;
-    state.pointer.tx=Math.max(0,Math.min(1,p.clientX/innerWidth));state.pointer.ty=Math.max(0,Math.min(1,p.clientY/innerHeight));state.pointer.active=true;
-    const r=$('[data-reticle]');r.style.left=p.clientX+'px';r.style.top=p.clientY+'px';
-  }
   const lab=$('[data-screen="lab"]');
-  lab.addEventListener('pointermove',pointerMove);lab.addEventListener('pointerdown',e=>{if(e.target.closest('button,a'))return;pointerMove(e);trySignal(e.clientX,e.clientY)});
-  function signalScreenPos(sig){
-    const cx=innerWidth*.52,cy=innerHeight*.49;
-    const radius=Math.min(innerWidth,innerHeight)*(innerWidth<700?.29:.31);
-    const mx=innerWidth<700?3.05:1.55,my=innerWidth<700?2.65:1.45;
-    return{x:cx+(sig.x-.5)*radius*mx,y:cy+(sig.y-.5)*radius*my};
-  }
-  function trySignal(x,y){
-    if(!state.spectrum||state.found.length>=3)return;
-    let best=-1,dist=Infinity;signals.forEach((s,i)=>{if(state.found.includes(i))return;const p=signalScreenPos(s),d=Math.hypot(x-p.x,y-p.y);if(d<dist){dist=d;best=i}});
-    const threshold=innerWidth<700?54:42;if(best>=0&&dist<threshold)findSignal(best);
-  }
-  function findSignal(i){
-    state.found.push(i);state.signalPulse=1;tone(signals[i].tone,.55,'sine',.22);tone(signals[i].tone*2,.38,'triangle',.08,.08);
-    const slot=$(`[data-signal-slot="${state.found.length-1}"]`);slot.classList.add('is-found');slot.querySelector('b').textContent=signals[i].label;
-    if(state.found.length<3)setObjective(`已捕获 ${state.found.length}/3 —— 继续扫描`);
-    else{setObjective('信号形成了完整句子');setTimeout(startBreach,1250)}
-  }
+  function pointerMove(e){if(state.paused||state.screen!=='lab')return;state.pointer.tx=Math.max(0,Math.min(1,e.clientX/innerWidth));state.pointer.ty=Math.max(0,Math.min(1,e.clientY/innerHeight));const r=$('[data-reticle]');r.style.left=e.clientX+'px';r.style.top=e.clientY+'px';recordPointer(e.clientX,e.clientY);if(state.stage===1&&state.tracing)traceAt(e.clientX,e.clientY)}
+  function pointerDown(e){if(e.target.closest('button,a'))return;state.pointer.down=true;pointerMove(e);if(state.stage===1&&state.spectrum){state.tracing=true;state.traceIndex=0;traceAt(e.clientX,e.clientY)}}
+  function pointerUp(){state.pointer.down=false;if(state.stage===1&&state.tracing&&state.traceIndex<traceShape.length){state.tracing=false;state.traceIndex=0;state.taskProgress=0;$('[data-task-progress]').style.width='0%';tone(80,.18,'square',.06)}}
+  lab.addEventListener('pointermove',pointerMove);lab.addEventListener('pointerdown',pointerDown);lab.addEventListener('pointerup',pointerUp);lab.addEventListener('pointercancel',pointerUp);lab.addEventListener('pointerleave',e=>{if(e.buttons===0)pointerUp()});
+  function recordPointer(x,y){const now=performance.now();if(now-state.historyLast<48)return;state.historyLast=now;state.history.push({x:x/innerWidth,y:y/innerHeight,t:now-state.startTime});if(state.history.length>520)state.history.shift()}
+  function tracePoints(){const cx=innerWidth*.52,cy=innerHeight*.49,r=Math.min(innerWidth,innerHeight)*(innerWidth<700?.29:.31);return traceShape.map(([x,y])=>({x:cx+x*r*1.12,y:cy+y*r*1.05}))}
+  function traceAt(x,y){const p=tracePoints()[state.traceIndex];if(!p)return;const threshold=innerWidth<700?43:34;if(Math.hypot(x-p.x,y-p.y)<threshold){state.traceIndex++;state.taskProgress=state.traceIndex/traceShape.length*100;$('[data-task-progress]').style.width=state.taskProgress+'%';tone(220+state.traceIndex*48,.16,'triangle',.11);if(state.traceIndex>=traceShape.length)completeTrace()}}
 
-  function togglePause(force){
-    state.paused=typeof force==='boolean'?force:!state.paused;const p=$('[data-pause-panel]');p.classList.toggle('is-open',state.paused);p.setAttribute('aria-hidden',String(!state.paused));
-  }
-  $('[data-pause]').addEventListener('click',()=>togglePause());$('[data-resume]').addEventListener('click',()=>togglePause(false));
-  $('[data-reduce-motion]').addEventListener('click',e=>{state.reduced=!state.reduced;document.body.classList.toggle('reduced-motion',state.reduced);e.currentTarget.textContent='动态效果：'+(state.reduced?'精简':'完整')});
-  function restart(){location.reload()} $$('[data-restart],[data-pause-restart],[data-result-restart]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();restart()}));
-  $('[data-mute]').addEventListener('click',e=>{state.muted=!state.muted;e.currentTarget.textContent='声音：'+(state.muted?'关':'开')});
+  function stageFlash(label){state.flash=1;state.flashLabel=label}
+  function completeGaze(){if(state.stage!==0)return;stageFlash('TEST 01 / COMPLETE');state.stage=1;state.taskProgress=0;chord();setMode(true);updateStageUI();$('[data-trace-prompt]').classList.add('is-visible');$('[data-trace-prompt]').setAttribute('aria-hidden','false');$('[data-response]').textContent='模仿';setTimeout(()=>{$('[data-trace-prompt]').classList.remove('is-visible')},3500)}
+  function completeTrace(){if(state.stage!==1)return;stageFlash('TEST 02 / PATTERN LEARNED');state.tracing=false;state.stage=2;state.taskProgress=100;chord();document.body.classList.add('is-infected');state.infected=true;updateStageUI();$('[data-trace-prompt]').classList.remove('is-visible');$('[data-contact-choice]').classList.add('is-visible');$('[data-contact-choice]').setAttribute('aria-hidden','false');$('[data-response]').textContent='主动';$('[data-objective]').textContent='它正在请求进入你的观察层';$('.case-title small').textContent='OBSERVER IDENTIFIED';$('.case-title b').textContent='你 / 047';$('[data-mute]').textContent='听见你：是';$('[data-pause]').textContent='离开？';tone(58,1.8,'sawtooth',.08)}
+  function choose(type){if(state.stage!==2)return;state.choice=type;$('[data-contact-choice]').classList.remove('is-visible');state.hesitation=(performance.now()-state.enterTime)/1000;tone(type==='contact'?55:110,1.3,'sawtooth',.15);setTimeout(startBreach,300)}
+  $('[data-contact]').addEventListener('click',()=>choose('contact'));$('[data-isolate]').addEventListener('click',()=>choose('isolate'));
 
-  function startBreach(){
-    if(state.screen!=='lab')return;state.hesitation=(performance.now()-state.enterTime)/1000;state.burn=.001;document.body.classList.add('is-burning');screen('breach');
-    const lines=['03/03 SIGNALS COMBINED','DECODING…','MESSAGE: 不是你在观察它','GAZE DIRECTION: OUTWARD','OBSERVER IDENTITY EXPOSED','CONTAINMENT FAILURE'];
-    const box=$('[data-breach-lines]');box.innerHTML='';lines.forEach((line,i)=>setTimeout(()=>{const d=document.createElement('div');d.textContent='> '+line;box.appendChild(d);tone(90+i*22,.28,'square',.08)},i*280));
-    setTimeout(()=>tone(52,2.8,'sawtooth',.14),700);setTimeout(showResult,state.reduced?900:3900);
-  }
-  function showResult(){
-    document.body.classList.remove('is-burning');screen('result');
-    const t=(performance.now()-state.startTime)/1000,id=Math.floor(1000+Math.random()*8999);
-    $('[data-result-id]').textContent=id;$('[data-gaze-time]').textContent=t.toFixed(1)+' 秒';$('[data-hesitation]').textContent=Math.min(state.hesitation,t).toFixed(1)+' 秒';
-    const type=t<25?'直觉闯入者':t<55?'快速解码者':t<95?'耐心接近者':'长期凝视者';$('[data-observer-type]').textContent=type;state.result={id,t,type};
-    chord();
-  }
-  $('[data-copy-result]').addEventListener('click',async e=>{const r=state.result||{id:'047',type:'观察者',t:0};const text=`未知样本 047 / 观测报告 ${r.id}\n类型：${r.type}\n被注视时间：${r.t.toFixed(1)} 秒\n结论：我没有发现样本，样本发现了我。\n${location.href}`;try{await navigator.clipboard.writeText(text);e.currentTarget.textContent='已复制观测结果 ✓'}catch{e.currentTarget.textContent='复制失败，请截屏保存'}});
+  function togglePause(force){state.paused=typeof force==='boolean'?force:!state.paused;const p=$('[data-pause-panel]');p.classList.toggle('is-open',state.paused);p.setAttribute('aria-hidden',String(!state.paused))}
+  $('[data-pause]').addEventListener('click',()=>togglePause());$('[data-resume]').addEventListener('click',()=>togglePause(false));$('[data-reduce-motion]').addEventListener('click',e=>{state.reduced=!state.reduced;document.body.classList.toggle('reduced-motion',state.reduced);e.currentTarget.textContent='动态效果：'+(state.reduced?'精简':'完整')});
+  function restart(){location.reload()}$$('[data-restart],[data-pause-restart],[data-result-restart]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();restart()}));$('[data-mute]').addEventListener('click',e=>{state.muted=!state.muted;e.currentTarget.textContent=state.infected?'听见你：'+(state.muted?'否':'是'):'声音：'+(state.muted?'关':'开')});
 
-  function drawGrid(w,h,time){
-    ctx.strokeStyle=state.spectrum?'rgba(255,75,34,.10)':'rgba(233,230,218,.08)';ctx.lineWidth=1;const gap=70;
-    ctx.beginPath();for(let x=(time*.008)%gap;x<w;x+=gap){ctx.moveTo(x,0);ctx.lineTo(x,h)}for(let y=(time*.004)%gap;y<h;y+=gap){ctx.moveTo(0,y);ctx.lineTo(w,y)}ctx.stroke();
-  }
-  function organicPoint(a,t,base){const wobble=1+Math.sin(a*3+t*.0007)*.055+Math.cos(a*7-t*.00033)*.025;return base*wobble}
-  function drawSpecimen(w,h,t){
-    const px=state.pointer.x,py=state.pointer.y,cx=w*.52+(px-.5)*-40,cy=h*.49+(py-.5)*-30;
-    const R=Math.min(w,h)*(w<700?.29:.31);ctx.save();ctx.translate(cx,cy);
-    // orbit and measurement geometry
-    ctx.strokeStyle=state.spectrum?'rgba(255,75,34,.34)':'rgba(216,255,56,.25)';ctx.lineWidth=1;
-    for(let i=0;i<3;i++){ctx.save();ctx.rotate(t*.00004*(i+1)+(i*Math.PI/3));ctx.scale(1,.32+i*.09);ctx.beginPath();ctx.arc(0,0,R*(1.25+i*.08),0,Math.PI*2);ctx.stroke();ctx.restore()}
-    // aura
-    const g=ctx.createRadialGradient(0,0,R*.1,0,0,R*1.2);g.addColorStop(0,state.spectrum?'rgba(255,75,34,.18)':'rgba(216,255,56,.18)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,R*1.25,0,Math.PI*2);ctx.fill();
-    // organic body
-    ctx.beginPath();for(let i=0;i<=120;i++){const a=i/120*Math.PI*2,r=organicPoint(a,t,R);const x=Math.cos(a)*r,y=Math.sin(a)*r*.92;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();
-    const body=ctx.createRadialGradient(-R*.28,-R*.36,R*.08,0,0,R);body.addColorStop(0,state.spectrum?'#f9a342':'#efff91');body.addColorStop(.38,state.spectrum?'#ff4b22':'#d8ff38');body.addColorStop(1,state.spectrum?'#301007':'#354a0b');ctx.fillStyle=body;ctx.fill();ctx.strokeStyle='rgba(233,230,218,.5)';ctx.stroke();
-    // internal contour
-    ctx.globalAlpha=state.spectrum?.85:.16;for(let k=0;k<8;k++){ctx.beginPath();const rr=R*(.16+k*.09);for(let i=0;i<=80;i++){const a=i/80*Math.PI*2,r=organicPoint(a,t+k*380,rr);const x=Math.cos(a)*r,y=Math.sin(a)*r*.9;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.closePath();ctx.strokeStyle=state.spectrum?'rgba(8,10,8,.45)':'rgba(8,10,8,.36)';ctx.stroke()}ctx.globalAlpha=1;
-    // eye opens based on proximity
-    const d=Math.hypot(px-.52,py-.49),near=d<.19;$('.proximity').classList.toggle('is-visible',near&&state.found.length<3);$('[data-response]').textContent=near?'跟随':'微弱';
-    const open=near?Math.min(1,(.19-d)*8):.06;ctx.save();ctx.translate((px-.5)*R*.22,(py-.5)*R*.16);ctx.scale(1,Math.max(.05,open));ctx.beginPath();ctx.ellipse(0,0,R*.29,R*.14,0,0,Math.PI*2);ctx.fillStyle='#080a08';ctx.fill();ctx.beginPath();ctx.arc((px-.5)*R*.12,(py-.5)*R*.08,R*.065,0,Math.PI*2);ctx.fillStyle=state.spectrum?'#d8ff38':'#ff4b22';ctx.fill();ctx.restore();if(near)state.gazeTime+=.016;
-    ctx.restore();
-    // signals live in screen space
-    if(state.spectrum){signals.forEach((s,i)=>{if(state.found.includes(i))return;const p=signalScreenPos(s),pulse=1+Math.sin(t*.006+i*2)*.2;ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle='rgba(216,255,56,.9)';ctx.fillStyle='rgba(216,255,56,.09)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,14*pulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(0,0,28*pulse,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#d8ff38';ctx.font='8px monospace';if(innerWidth<700){ctx.fillText(`0${i+1}`,32,3)}else{ctx.fillText('UNRESOLVED',34,-3);ctx.fillText('点击捕获',34,9)}ctx.restore()})}
-    // scanner
-    const scanY=(t*.06%(h*1.35))-h*.2;ctx.fillStyle=state.spectrum?'rgba(255,75,34,.025)':'rgba(216,255,56,.018)';ctx.fillRect(0,scanY,w,60);ctx.strokeStyle=state.spectrum?'rgba(255,75,34,.18)':'rgba(216,255,56,.12)';ctx.beginPath();ctx.moveTo(0,scanY);ctx.lineTo(w,scanY);ctx.stroke();
-    $('[data-phase]').textContent=(Math.sin(t*.0017)*2.4>=0?'+':'')+(Math.sin(t*.0017)*2.4).toFixed(2);$('[data-temp]').textContent=(18.4+Math.sin(t*.0009)*.7+state.found.length*.9).toFixed(1)+'°';
-  }
-  function drawBreach(w,h,t){
-    fx.clearRect(0,0,w,h);if(state.screen!=='breach')return;state.burn=Math.min(1,state.burn+.0065);
-    fx.fillStyle='#080a08';fx.fillRect(0,0,w,h);const cx=w*(.35+state.pointer.x*.3),cy=h*(.35+state.pointer.y*.25),r=Math.hypot(w,h)*state.burn*.75;
-    fx.globalCompositeOperation='destination-out';const hole=fx.createRadialGradient(cx,cy,r*.55,cx,cy,r);hole.addColorStop(0,'rgba(0,0,0,1)');hole.addColorStop(.78,'rgba(0,0,0,.95)');hole.addColorStop(1,'rgba(0,0,0,0)');fx.fillStyle=hole;fx.beginPath();fx.arc(cx,cy,r,0,Math.PI*2);fx.fill();fx.globalCompositeOperation='source-over';
-    for(let i=0;i<95;i++){const a=i/95*Math.PI*2+Math.sin(i*3.7)*.06,rr=r*(.78+Math.sin(i*8.2+t*.008)*.05),x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;fx.fillStyle=i%3?'#ff4b22':'#d8ff38';fx.globalAlpha=.25+Math.sin(i+t*.01)*.2;fx.beginPath();fx.arc(x,y,1.5+(i%5),0,Math.PI*2);fx.fill()}fx.globalAlpha=1;
-    // embers
-    for(let i=0;i<45;i++){const seed=(i*971)%997,x=(seed/997*w+t*(i%4+1)*.035)%w,y=h-((t*.08+i*83)%(h*1.2));fx.fillStyle=i%4?'#ff4b22':'#d8ff38';fx.fillRect(x,y,1+(i%3),4+(i%7))}
-  }
-  function frame(t){
-    const dt=Math.min(32,t-(state.lastFrame||t));state.lastFrame=t;state.pointer.x+=(state.pointer.tx-state.pointer.x)*.075;state.pointer.y+=(state.pointer.ty-state.pointer.y)*.075;
-    ctx.clearRect(0,0,innerWidth,innerHeight);ctx.fillStyle='#080a08';ctx.fillRect(0,0,innerWidth,innerHeight);
-    if(state.screen==='lab'||state.screen==='breach'){drawGrid(innerWidth,innerHeight,t);drawSpecimen(innerWidth,innerHeight,t)}
-    drawBreach(innerWidth,innerHeight,t);requestAnimationFrame(frame);
-  }
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.screen==='lab'&&!state.paused)togglePause(true)});
-  $('[data-clock]').textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false});setInterval(()=>{$('[data-clock]').textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false})},1000);
-  boot();requestAnimationFrame(frame);
+  function startBreach(){if(state.screen!=='lab')return;state.burn=.001;document.body.classList.add('is-burning');screen('breach');const lines=state.choice==='contact'?['03/03 TESTS COMPLETE','ISOLATION: RELEASED','IMPORTING OBSERVER MOTION…','GAZE DIRECTION: OUTWARD','BEHAVIOR COPY: ACTIVE','OBSERVER ROLE REASSIGNED']:['03/03 TESTS COMPLETE','ISOLATION: PRESERVED','REQUEST DENIED','ALTERNATE ACCESS: FOUND','IMPORTING OBSERVER MOTION…','OBSERVER ROLE REASSIGNED'];const box=$('[data-breach-lines]');box.innerHTML='';lines.forEach((line,i)=>setTimeout(()=>{const d=document.createElement('div');d.textContent='> '+line;box.appendChild(d);tone(90+i*22,.28,'square',.08)},i*260));setTimeout(()=>tone(52,2.8,'sawtooth',.14),650);setTimeout(startPlayback,state.reduced?1000:3300)}
+
+  function startPlayback(){document.body.classList.remove('is-burning');screen('playback');const records=$('[data-playback-records]');records.innerHTML='';const rows=[['记录观察者犹豫','完成'],['学习观察者轨迹','完成'],['模拟观察者行为','进行中'],['替换观察者身份','等待']];rows.forEach((row,i)=>setTimeout(()=>{const d=document.createElement('div');d.innerHTML=`<span>${row[0]}</span><span>${row[1]}</span>`;records.appendChild(d);tone(180+i*35,.16,'triangle',.07)},i*520));replayHistory()}
+  function replayHistory(){const ghost=$('[data-ghost-cursor]'),data=state.history.length>4?state.history:[{x:.2,y:.6},{x:.48,y:.42},{x:.63,y:.55},{x:.5,y:.5}],duration=state.reduced?900:4800,start=performance.now();let finished=false;const finish=()=>{if(finished)return;finished=true;ghost.querySelector('b').textContent='CONTROL / 已接管';$('[data-playback-status]').textContent='观察者身份替换　完成';setTimeout(showResult,state.reduced?300:900)};function step(now){if(finished)return;const p=Math.min(1,(now-start)/duration),idx=Math.min(data.length-1,Math.floor(p*(data.length-1))),v=data[idx];ghost.style.left=v.x*innerWidth+'px';ghost.style.top=v.y*innerHeight+'px';$('[data-playback-status]').textContent='重演观察者轨迹　'+String(Math.round(p*100)).padStart(2,'0')+'%';if(p<1)requestAnimationFrame(step);else finish()}requestAnimationFrame(step);setTimeout(finish,duration+700)}
+  function showResult(){screen('result');const t=(performance.now()-state.startTime)/1000,id=Math.floor(1000+Math.random()*8999),type=state.choice==='contact'?'主动接触者':'谨慎隔离者';$('[data-result-id]').textContent=id;$('[data-gaze-time]').textContent=t.toFixed(1)+' 秒';$('[data-hesitation]').textContent=Math.min(state.hesitation,t).toFixed(1)+' 秒';$('[data-observer-type]').textContent=type;const conclusion=$('.result__report div:last-child dd');conclusion.textContent=state.choice==='contact'?'边界已被样本继承':'隔离无效，仍被学习';state.result={id,t,type};chord(false)}
+  $('[data-copy-result]').addEventListener('click',async e=>{const r=state.result||{id:'047',type:'观察者',t:0},text=`未知样本 047 / 观测报告 ${r.id}\n类型：${r.type}\n被注视时间：${r.t.toFixed(1)} 秒\n结论：我没有发现样本，样本发现了我。\n${location.href}`;try{await navigator.clipboard.writeText(text);e.currentTarget.textContent='已复制观测结果 ✓'}catch{e.currentTarget.textContent='复制失败，请截屏保存'}});
+
+  function drawGrid(w,h,t){ctx.strokeStyle=state.spectrum?'rgba(255,75,34,.10)':'rgba(233,230,218,.08)';ctx.lineWidth=1;const gap=70;ctx.beginPath();for(let x=(t*.008)%gap;x<w;x+=gap){ctx.moveTo(x,0);ctx.lineTo(x,h)}for(let y=(t*.004)%gap;y<h;y+=gap){ctx.moveTo(0,y);ctx.lineTo(w,y)}ctx.stroke()}
+  function organicPoint(a,t,b){return b*(1+Math.sin(a*3+t*.0007)*.055+Math.cos(a*7-t*.00033)*.025)}
+  function drawSpecimen(w,h,t,dt){const px=state.pointer.x,py=state.pointer.y,cx=w*.52+(px-.5)*-40,cy=h*.49+(py-.5)*-30,R=Math.min(w,h)*(w<700?.29:.31);ctx.save();ctx.translate(cx,cy);ctx.strokeStyle=state.infected?'rgba(255,75,34,.46)':state.spectrum?'rgba(255,75,34,.34)':'rgba(216,255,56,.25)';ctx.lineWidth=1;for(let i=0;i<3;i++){ctx.save();ctx.rotate(t*.00004*(i+1)+i*Math.PI/3);ctx.scale(1,.32+i*.09);ctx.beginPath();ctx.arc(0,0,R*(1.25+i*.08),0,Math.PI*2);ctx.stroke();ctx.restore()}const g=ctx.createRadialGradient(0,0,R*.1,0,0,R*1.2);g.addColorStop(0,state.spectrum?'rgba(255,75,34,.22)':'rgba(216,255,56,.18)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,R*1.25,0,Math.PI*2);ctx.fill();ctx.beginPath();for(let i=0;i<=120;i++){const a=i/120*Math.PI*2,r=organicPoint(a,t,R),x=Math.cos(a)*r,y=Math.sin(a)*r*.92;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();const body=ctx.createRadialGradient(-R*.28,-R*.36,R*.08,0,0,R);body.addColorStop(0,state.spectrum?'#f9a342':'#efff91');body.addColorStop(.38,state.spectrum?'#ff4b22':'#d8ff38');body.addColorStop(1,state.spectrum?'#301007':'#354a0b');ctx.fillStyle=body;ctx.fill();ctx.strokeStyle='rgba(233,230,218,.5)';ctx.stroke();ctx.globalAlpha=state.spectrum?.85:.16;for(let k=0;k<8;k++){ctx.beginPath();const rr=R*(.16+k*.09);for(let i=0;i<=80;i++){const a=i/80*Math.PI*2,r=organicPoint(a,t+k*380,rr),x=Math.cos(a)*r,y=Math.sin(a)*r*.9;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath();ctx.strokeStyle=state.spectrum?'rgba(8,10,8,.45)':'rgba(8,10,8,.36)';ctx.stroke()}ctx.globalAlpha=1;const d=Math.hypot(px-.52,py-.49),near=d<.15;$('.proximity').classList.toggle('is-visible',near&&state.stage===0);let open=near?Math.min(1,(.15-d)*10):state.stage>0?.55:.06;if(state.infected)open=1;ctx.save();ctx.translate((px-.5)*R*.22,(py-.5)*R*.16);ctx.scale(1,Math.max(.05,open));ctx.beginPath();ctx.ellipse(0,0,R*.29,R*.14,0,0,Math.PI*2);ctx.fillStyle='#080a08';ctx.fill();ctx.beginPath();ctx.arc((px-.5)*R*.12,(py-.5)*R*.08,R*.065,0,Math.PI*2);ctx.fillStyle=state.spectrum?'#d8ff38':'#ff4b22';ctx.fill();ctx.restore();ctx.restore();if(near)state.gazeTime+=dt/1000;
+    if(state.stage===0){state.taskProgress=Math.max(0,Math.min(100,state.taskProgress+(near?dt/34:-dt/55)));$('[data-task-progress]').style.width=state.taskProgress+'%';$('[data-response]').textContent=near?'锁定':'微弱';if(state.taskProgress>=100)completeGaze()}
+    if(state.stage===1&&state.spectrum)drawTrace(t);if(state.stage===2)drawContactTendrils(w,h,t,cx,cy,R);
+    const scanY=(t*.06%(h*1.35))-h*.2;ctx.fillStyle=state.spectrum?'rgba(255,75,34,.025)':'rgba(216,255,56,.018)';ctx.fillRect(0,scanY,w,60);ctx.strokeStyle=state.spectrum?'rgba(255,75,34,.18)':'rgba(216,255,56,.12)';ctx.beginPath();ctx.moveTo(0,scanY);ctx.lineTo(w,scanY);ctx.stroke();$('[data-phase]').textContent=(Math.sin(t*.0017)*2.4>=0?'+':'')+(Math.sin(t*.0017)*2.4).toFixed(2);$('[data-temp]').textContent=(18.4+Math.sin(t*.0009)*.7+state.stage*.9).toFixed(1)+'°'}
+  function drawTrace(t){const pts=tracePoints();ctx.save();ctx.strokeStyle='rgba(216,255,56,.28)';ctx.setLineDash([3,7]);ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.setLineDash([]);if(state.tracing&&state.traceIndex>0){ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<state.traceIndex;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.lineTo(state.pointer.x*innerWidth,state.pointer.y*innerHeight);ctx.strokeStyle='#ff4b22';ctx.lineWidth=2;ctx.shadowColor='#ff4b22';ctx.shadowBlur=14;ctx.stroke();ctx.shadowBlur=0}pts.forEach((p,i)=>{const active=i===state.traceIndex,done=i<state.traceIndex,pulse=1+Math.sin(t*.007+i)*.16;ctx.beginPath();ctx.arc(p.x,p.y,(active?18:10)*pulse,0,Math.PI*2);ctx.fillStyle=done?'rgba(216,255,56,.65)':active?'rgba(255,75,34,.22)':'rgba(216,255,56,.08)';ctx.fill();ctx.strokeStyle=active?'#ff4b22':'#d8ff38';ctx.stroke();ctx.fillStyle=active?'#ff4b22':'#d8ff38';ctx.font='8px monospace';ctx.fillText(String(i+1).padStart(2,'0'),p.x+22,p.y+3)});ctx.restore()}
+  function drawContactTendrils(w,h,t,cx,cy,R){ctx.save();ctx.strokeStyle='rgba(255,75,34,.4)';for(let i=0;i<7;i++){const a=i/7*Math.PI*2+t*.0001;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*R*.7,cy+Math.sin(a)*R*.7);ctx.bezierCurveTo(cx+Math.cos(a)*R*1.4,cy+Math.sin(a)*R*.4,state.pointer.x*w,state.pointer.y*h,state.pointer.x*w+(i-3)*5,state.pointer.y*h);ctx.stroke()}ctx.restore()}
+  function drawBreach(w,h,t){fx.clearRect(0,0,w,h);if(state.screen!=='breach')return;state.burn=Math.min(1,state.burn+.0065);fx.fillStyle='#080a08';fx.fillRect(0,0,w,h);const cx=w*(.35+state.pointer.x*.3),cy=h*(.35+state.pointer.y*.25),r=Math.hypot(w,h)*state.burn*.75;fx.globalCompositeOperation='destination-out';const hole=fx.createRadialGradient(cx,cy,r*.55,cx,cy,r);hole.addColorStop(0,'rgba(0,0,0,1)');hole.addColorStop(.78,'rgba(0,0,0,.95)');hole.addColorStop(1,'rgba(0,0,0,0)');fx.fillStyle=hole;fx.beginPath();fx.arc(cx,cy,r,0,Math.PI*2);fx.fill();fx.globalCompositeOperation='source-over';for(let i=0;i<95;i++){const a=i/95*Math.PI*2+Math.sin(i*3.7)*.06,rr=r*(.78+Math.sin(i*8.2+t*.008)*.05),x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;fx.fillStyle=i%3?'#ff4b22':'#d8ff38';fx.globalAlpha=.25+Math.sin(i+t*.01)*.2;fx.beginPath();fx.arc(x,y,1.5+i%5,0,Math.PI*2);fx.fill()}fx.globalAlpha=1;for(let i=0;i<45;i++){const seed=i*971%997,x=(seed/997*w+t*(i%4+1)*.035)%w,y=h-((t*.08+i*83)%(h*1.2));fx.fillStyle=i%4?'#ff4b22':'#d8ff38';fx.fillRect(x,y,1+i%3,4+i%7)}}
+  function drawStageFlash(){if(state.flash<=0||state.screen!=='lab')return;const p=1-state.flash;fx.save();fx.globalAlpha=Math.sin(state.flash*Math.PI)*.8;fx.fillStyle=state.stage>1?'#ff4b22':'#d8ff38';fx.fillRect(0,0,innerWidth,innerHeight);fx.globalCompositeOperation='destination-out';fx.beginPath();fx.arc(innerWidth*.52,innerHeight*.49,Math.hypot(innerWidth,innerHeight)*p,0,Math.PI*2);fx.fill();fx.globalCompositeOperation='source-over';fx.globalAlpha=Math.min(1,state.flash*2);fx.fillStyle='#080a08';fx.font=`500 ${Math.max(10,innerWidth*.008)}px monospace`;fx.fillText(state.flashLabel,30,innerHeight-28);fx.restore();state.flash=Math.max(0,state.flash-.035)}
+  function frame(t){const dt=Math.min(34,t-(state.lastFrame||t));state.lastFrame=t;state.pointer.x+=(state.pointer.tx-state.pointer.x)*.075;state.pointer.y+=(state.pointer.ty-state.pointer.y)*.075;ctx.clearRect(0,0,innerWidth,innerHeight);ctx.fillStyle='#080a08';ctx.fillRect(0,0,innerWidth,innerHeight);if(state.screen==='lab'||state.screen==='breach'){drawGrid(innerWidth,innerHeight,t);if(!state.paused)drawSpecimen(innerWidth,innerHeight,t,dt)}drawBreach(innerWidth,innerHeight,t);if(state.screen!=='breach'){fx.clearRect(0,0,innerWidth,innerHeight);drawStageFlash()}requestAnimationFrame(frame)}
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.screen==='lab'&&!state.paused)togglePause(true)});$('[data-clock]').textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false});setInterval(()=>{$('[data-clock]').textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false})},1000);boot();requestAnimationFrame(frame);
 })();

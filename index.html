@@ -38,7 +38,15 @@
       <span>状态<br /><b>休眠</b></span>
       <span>危险级<br /><b>无法判定</b></span>
     </div>
-    <p class="brief__copy">移动视线，观察样本。切换至显影频谱，找到三处不属于它的信号。</p>
+    <div class="brief__mission">
+      <p><b>你的任务</b>完成三项观察测试，确认样本是否具有自主意识。</p>
+      <ol>
+        <li><i>01</i><span>稳定凝视</span></li>
+        <li><i>02</i><span>描绘回声</span></li>
+        <li><i>03</i><span>决定是否接触</span></li>
+      </ol>
+      <small>预计用时 02:00　鼠标与触摸均可操作</small>
+    </div>
     <button class="enter-button" type="button" data-enter>
       <span>开始观察</span><i>按下以授权声音与交互</i>
     </button>
@@ -62,19 +70,21 @@
     </aside>
 
     <section class="objective" aria-live="polite">
-      <span>当前任务</span>
-      <b data-objective>观察样本的表层行为</b>
+      <span>当前测试 <i data-stage-number>01 / 03</i></span>
+      <b data-objective>将视线移至样本中央</b>
+      <small data-instruction>保持稳定，直至扫描完成</small>
+      <div class="objective__progress"><i data-task-progress></i></div>
     </section>
 
     <div class="reticle" data-reticle aria-hidden="true"><i></i><span></span></div>
     <div class="proximity" data-proximity aria-hidden="true">它察觉到了你的视线</div>
 
-    <aside class="signals" aria-label="信号收集进度">
-      <span>SIGNAL TRACE</span>
+    <aside class="signals" aria-label="测试进度">
+      <span>OBSERVATION TESTS</span>
       <ol>
-        <li data-signal-slot="0"><i>01</i><b>尚未定位</b></li>
-        <li data-signal-slot="1"><i>02</i><b>尚未定位</b></li>
-        <li data-signal-slot="2"><i>03</i><b>尚未定位</b></li>
+        <li data-signal-slot="0" class="is-current"><i>01</i><b>稳定凝视</b></li>
+        <li data-signal-slot="1"><i>02</i><b>描绘回声</b></li>
+        <li data-signal-slot="2"><i>03</i><b>接触协议</b></li>
       </ol>
     </aside>
 
@@ -86,8 +96,14 @@
       <p data-mode-note>可见光 / 表层信息</p>
     </div>
 
-    <div class="mobile-hint">拖动视线 · 点击异常点 · 切换频谱</div>
+    <div class="mobile-hint" data-mobile-hint>移动手指，将准星对准样本中央</div>
     <div class="version">RA–047<br />BUILD 2.0</div>
+    <div class="trace-prompt" data-trace-prompt aria-hidden="true"><b>按住并描绘</b><span>依次穿过发光节点，不要松开</span></div>
+    <div class="contact-choice" data-contact-choice aria-hidden="true">
+      <p>样本正在请求直接接触</p><strong>是否解除隔离？</strong>
+      <div><button type="button" data-contact>允许接触</button><button type="button" data-isolate>保持隔离</button></div>
+      <small>选择将改变本次观测报告</small>
+    </div>
   </main>
 
   <section class="pause-panel" data-pause-panel aria-hidden="true">
@@ -104,6 +120,14 @@
       <strong>请立即移开视线</strong>
     </div>
     <div class="breach__lines" data-breach-lines></div>
+  </section>
+
+  <section class="playback screen" data-screen="playback" aria-label="行为轨迹回放">
+    <p class="playback__label">BEHAVIOR RECONSTRUCTION / 行为重建</p>
+    <h2>请勿移动。<br /><span>它正在学习你。</span></h2>
+    <div class="ghost-cursor" data-ghost-cursor><i></i><b>OBSERVER / 复制体</b></div>
+    <div class="playback__records" data-playback-records></div>
+    <p class="playback__status" data-playback-status>重演观察者轨迹　00%</p>
   </section>
 
   <section class="result screen" data-screen="result" aria-labelledby="result-title">
